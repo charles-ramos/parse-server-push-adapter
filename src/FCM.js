@@ -246,6 +246,17 @@ function _GCMToFCMPayload(requestData, timeStamp) {
 
   if (requestData.hasOwnProperty('notification')) {
     androidPayload.android.notification = requestData.notification;
+  } else if (requestData.hasOwnProperty('data')) {
+    androidPayload.android.notification = {};
+    if (requestData.data.title) {
+      androidPayload.android.notification['title'] = requestData.data.title;
+    }
+    if (requestData.data.alert) {
+        androidPayload.android.notification['body'] = requestData.data.alert;
+    }
+    else if (requestData.data.body) {
+      androidPayload.android.notification['body'] = requestData.data.body;
+    }
   }
 
   if (requestData.hasOwnProperty('data')) {
@@ -255,24 +266,43 @@ function _GCMToFCMPayload(requestData, timeStamp) {
         delete requestData.data[key]
       }
     }
+    if (requestData.data && requestData.data.alert && typeof requestData.data.alert == 'object') {
+      androidPayload.android.data = {
+        ...requestData.data,
+        alert: JSON.stringify(requestData.data.alert)
+      }
+    }
+    else {
+      androidPayload.android.data = requestData.data;
+    }
+  }
+
+  if (requestData.data && requestData.data.alert && typeof requestData.data.alert == 'object') {
+    androidPayload.android.data = {
+      ...requestData.data,
+      alert: JSON.stringify(requestData.data.alert)
+    }
+  }
+  else { 
     androidPayload.android.data = requestData.data;
   }
+}
 
-  if (requestData['expiration_time']) {
-    const expirationTime = requestData['expiration_time'];
-    // Convert to seconds
-    let timeToLive = Math.floor((expirationTime - timeStamp) / 1000);
-    if (timeToLive < 0) {
-      timeToLive = 0;
-    }
-    if (timeToLive >= FCMTimeToLiveMax) {
-      timeToLive = FCMTimeToLiveMax;
-    }
-
-    androidPayload.android.ttl = timeToLive;
+if (requestData['expiration_time']) {
+  const expirationTime = requestData['expiration_time'];
+  // Convert to seconds
+  let timeToLive = Math.floor((expirationTime - timeStamp) / 1000);
+  if (timeToLive < 0) {
+    timeToLive = 0;
+  }
+  if (timeToLive >= FCMTimeToLiveMax) {
+    timeToLive = FCMTimeToLiveMax;
   }
 
-  return androidPayload;
+  androidPayload.android.ttl = timeToLive;
+}
+
+return androidPayload;
 }
 
 /**
